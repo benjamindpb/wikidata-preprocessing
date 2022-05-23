@@ -1,1 +1,2 @@
-# wikidata-atlas
+# Wikidata Atlas
+
