@@ -18,12 +18,12 @@ def get_entities_and_coord(bytes=-1):
                 # print(str_line)
                 n_entities += 1
                 split = str_line.split(' ')
-                print(split)
+                # print(split)
                 lon = split[2].split('(')[1]
                 lat = split[3].split(')"^^')[0]
                 e.write('{}\t{}\t{}\n'.format(split[0], lat, lon))
     end = time.time()
-    print('Time working: {}\n'.format(convert(end - start)))
+    print('Time working: {}'.format(convert(end - start)))
     print('Found entities: {}\n'.format(n_entities))
 
 def convert(seconds):
