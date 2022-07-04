@@ -1,3 +1,7 @@
 *.gz
 .ipynb_checkpoints
 *.tsv
+
+informe.md
+*.png
+*.html
