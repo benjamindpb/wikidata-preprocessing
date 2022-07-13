@@ -1,18 +1,16 @@
 import gzip
 import time
-from turtle import width
 import pandas as pd
-import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 import folium as fo
-import mpl_toolkits as mpl
+import sys
 
+DUMP_TRUTHY = 'latest-truthy.nt.gz'
+TOTAL_ENTITIES_TSV = "data/entities_total.tsv"
+ERRORS_TSV = "data/errors.tsv"
 
-BYTES = 10000
-dump_truthy = 'latest-truthy.nt.gz'
-total_entities = "data/entities_total.tsv"
-errors_fn = "data/errors.tsv"
+def convert(seconds):
+    return time.strftime("%H:%M:%S", time.gmtime(seconds))
 
 
 def get_entities_coords(n):
@@ -22,16 +20,17 @@ def get_entities_coords(n):
     start = time.time()
     n_entities = 0
     n_errors = 0
-    with gzip.open(dump_truthy, 'rt', encoding='utf8') as f, open("entities.tsv", 'w') as entities, open(errors_fn, 'w') as errors:
+    with gzip.open(DUMP_TRUTHY, 'rt', encoding='utf8') as f, open("entities.tsv", 'w') as entities, open(errors_fn, 'w') as errors:
         print('Reading file...')
         entities.write('entity_url\tlatitude\tlongitude\n')
         for line in f:
             if n==n_entities: break
-            if '<http://www.wikidata.org/prop/direct/P625>' in line: 
+            if '</P625>' in line: 
                 try:
                     n_entities += 1
                     split = line.split(' ')
                     entity = split[0].split('Q')[1][:-1] # '<https://www.wikidata.org/wiki/Q5>' -> 5
+                    # Las sgtes lineas rescatan las coord pero se piensa hacer mejor con regex
                     lon = split[2].split('(')[1]
                     lat = split[3].split(')"^^')[0]
                     entities.write('{}\t{}\t{}\n'.format(entity, lat.replace('.',','), lon.replace('.',',')))
@@ -50,9 +49,9 @@ def entities_dict():
     start = time.time()
     D = {}
     n_entities = 0
-    with open(total_entities, "r") as f:
+    with open(TOTAL_ENTITIES_TSV, "r") as f:
         for line in f:
-            key, _, _ = line.split() # entity url key and geo coords (lat, lon)
+            key, _, _ = line.split() # entity url, key, and geo coords (lat, lon)
             D[key] = 1
             n_entities += 1
             print(f"Number of entitites added to dict: {n_entities}", end="\r")
@@ -71,7 +70,7 @@ def count_types():
     start = time.time()
     d = entities_dict()
     types_dict = {}
-    with gzip.open(dump_truthy, 'rt', encoding='utf8') as f:
+    with gzip.open(DUMP_TRUTHY, 'rt', encoding='utf8') as f:
         print("* Reading dump truthy...")
         for line in f:
             if '/P31>' in line:
@@ -120,8 +119,12 @@ def types_count_to_html():
     # sort_df.reset_index(drop=True)
     sort_df[:25].to_html('entity_list.html', index=False)
 
-def world_map():
-    data = pd.read_csv('data/entities_total.tsv', sep='\t')   
+def world_map(n):
+    start = time.time()
+    print("Reading total of entities...")
+    data = pd.read_csv('results/entities_total.tsv', sep='\t')  
+    noe = 0
+    # Creating map
     m = fo.Map(
         tiles="CartoDB dark_matter",
         location=[0, 0],
@@ -132,26 +135,31 @@ def world_map():
     lat = data['latitude']
     lon = data['longitude']
     for a, b in zip(lat, lon):
+        if noe == n: break 
         fo.CircleMarker(
             location=[float(a.replace(',', '.')), float(b.replace(',', '.'))],
-            color="crimson",
+            color="#fc2ac1",
             fill=False,
-            weight=0.5,
+            weight=0.3,
             radius=0.5
         ).add_to(m)
-        
+        noe += 1
+        print(f'{str(noe)} entities added.', end='\r')
+    
+    print('\nSaving html file...')
+    
     m.save("map.html")
+    end = time.time()
+    print(f'Time working: {convert(end-start)} (h:m:s)')
+
+world_map(100)
 
 
 
-def convert(seconds):
-    return time.strftime("%H:%M:%S", time.gmtime(seconds))
 
-# get_entities_coords()
-# entities_dict()
-# get_types_count()
-# types_count_to_md()
-# world_map()
-world_map()
+
+
+
+
 
 
