@@ -11,7 +11,7 @@ const projection = d3.geoMercator()
 
 Promise.all([
 d3.json("https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson"),
-d3.tsv("results/entities_10k.tsv")
+d3.tsv("results/entities_500k.tsv")
 // d3.csv("https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/data_gpsLocSurfer.csv")
 
 ]).then(function (initialize) {
