@@ -4,28 +4,35 @@ import pandas as pd
 import pandas as pd
 import folium as fo
 import sys
+import pickle
+
+from regex import P
 
 DUMP_TRUTHY = 'latest-truthy.nt.gz'
-TOTAL_ENTITIES_TSV = "data/entities_total.tsv"
-ERRORS_TSV = "data/errors.tsv"
+P625_TSV = "results/entities/entities_100k.tsv"
+P31_TSV = "results/types/entity_types.tsv"
+PICKLE_ENTITIES = "bin/entities_dict.bin"
+PICKLE_TYPES = "bin/entities_types.bin"
 
 def convert(seconds):
     return time.strftime("%H:%M:%S", time.gmtime(seconds))
 
 
-def get_entities_coords(n):
+def get_entities_coords(n=10**7):
     """
-        Esta función se encarga de 
+        This function 
     """
     start = time.time()
     n_entities = 0
     n_errors = 0
-    with gzip.open(DUMP_TRUTHY, 'rt', encoding='utf8') as f, open("entities.tsv", 'w') as entities, open(errors_fn, 'w') as errors:
+    total_ntriples = 0
+    with gzip.open(DUMP_TRUTHY, 'rt', encoding='utf8') as f, open("results/entities/entities.tsv", 'w') as entities:
         print('Reading file...')
         entities.write('entity_url\tlatitude\tlongitude\n')
         for line in f:
+            total_ntriples += 1
             if n==n_entities: break
-            if '</P625>' in line: 
+            if '/P625>' in line: 
                 try:
                     n_entities += 1
                     split = line.split(' ')
@@ -33,15 +40,15 @@ def get_entities_coords(n):
                     # Las sgtes lineas rescatan las coord pero se piensa hacer mejor con regex
                     lon = split[2].split('(')[1]
                     lat = split[3].split(')"^^')[0]
-                    entities.write('{}\t{}\t{}\n'.format(entity, lat.replace('.',','), lon.replace('.',',')))
+                    entities.write('{}\t{}\t{}\n'.format(entity, lat, lon))
 
-                    print(f'Found {n_entities} entities with {n_errors} errors', end="\r")
+                    print(f'Found {n_entities} entities with geo coord and {n_errors} errors', end="\r")
                 except: 
-                    n_error += 1
+                    n_errors += 1
                     n_entities -= 1
-                    errors.write(line)
                     
     end = time.time()
+    print(f'\nTotal of N-Triples: {total_ntriples}')
     print('\nTime working: {}'.format(convert(end - start)))
 
 def entities_dict():
@@ -49,28 +56,22 @@ def entities_dict():
     start = time.time()
     D = {}
     n_entities = 0
-    with open(TOTAL_ENTITIES_TSV, "r") as f:
+    with open(P625_TSV, "r") as f, open(PICKLE_ENTITIES, 'wb') as p:
         for line in f:
             key, _, _ = line.split() # entity url, key, and geo coords (lat, lon)
             D[key] = 1
             n_entities += 1
             print(f"Number of entitites added to dict: {n_entities}", end="\r")
-    end = time.time()
-    print(f"\nTime working getting the dict: {convert(end-start)}")
-    return D
-"""
-    Leer el dum truthy completo  y si el 1er termino está en el diccionario
-    de entidades (P625), y si el 2do termino es http://www.wikidata.org/prop/direct/P31
+        end = time.time()
+        print(f"\nTime working getting the dict: {convert(end-start)}")
+        pickle.dump(D, p)
 
-    Esta función retorna un diccionario que contiene la frecuencia de los tipos de 
-    entidades del dataset (?)
-
-"""
 def count_types():
     start = time.time()
-    d = entities_dict()
     types_dict = {}
-    with gzip.open(DUMP_TRUTHY, 'rt', encoding='utf8') as f:
+    with gzip.open(DUMP_TRUTHY, 'rt', encoding='utf8') as f, open(PICKLE_ENTITIES, 'rb') as pe:
+        # Load dict from created binary pickle file
+        d = pickle.load(pe)
         print("* Reading dump truthy...")
         for line in f:
             if '/P31>' in line:
@@ -83,25 +84,28 @@ def count_types():
                             types_dict[et] += 1
                         else:
                             types_dict[et] = 0 # base case
+    pt = open(PICKLE_TYPES, 'wb')
+    pickle.dump(types_dict, pt)
+    pt.close()
     end = time.time()
     print(f"\nTime working getting the types count dict: {convert(end-start)}")
-    return types_dict
 
 def get_types_count():
     start = time.time()
-    d = count_types()
     n_type = 0
     print('Adding types and count in tsv file.\n')
-    with open("data/entity_types.tsv", "w", encoding='utf8') as t, open("data/entity_types_errors.tsv", "w", encoding="utf8") as e:
+    with open(P31_TSV, "w", encoding='utf8') as t, open(PICKLE_TYPES, 'rb') as pt:
+        d = pickle.load(pt)
         t.write("entity_type\tcount\n")
         for k in d:
             try:
-                type_key = k.split('Q')[1][:-1] # acá hay problemas
+                type_key = k.split('Q')[1][:-1] 
                 t.write(f'{type_key}\t{d[k]}\n')
                 n_type += 1
                 print(f'Type {n_type} added to the file', end='\r')
             except:
-                e.write(type_key+"\n")
+                pass
+        
     end = time.time()
     print(f'\nTime working getting the tsv file of the types count: {convert(end-start)}')
 
@@ -109,7 +113,6 @@ def types_count_to_md():
     df = pd.read_csv("data/entity_types.tsv", sep="\t")
     sort_df = df.sort_values(by='count', ascending=False)
     sort_df['entity_type'] = 'https://www.wikidata.org/wiki/Q'+sort_df['entity_type'].astype(str)
-    sort_df['title_label'] = [get_title_label(u) for u in sort_df['entity_type']]
     print(sort_df[:25].to_markdown(index=False))
 
 def types_count_to_html():
@@ -119,40 +122,23 @@ def types_count_to_html():
     # sort_df.reset_index(drop=True)
     sort_df[:25].to_html('entity_list.html', index=False)
 
-def world_map(n):
-    start = time.time()
-    print("Reading total of entities...")
-    data = pd.read_csv('results/entities_total.tsv', sep='\t')  
-    noe = 0
-    # Creating map
-    m = fo.Map(
-        tiles="CartoDB dark_matter",
-        location=[0, 0],
-        zoom_control=False,
-        prefer_canvas=True,
-        zoom_start=2
-        )
-    lat = data['latitude']
-    lon = data['longitude']
-    for a, b in zip(lat, lon):
-        if noe == n: break 
-        fo.CircleMarker(
-            location=[float(a.replace(',', '.')), float(b.replace(',', '.'))],
-            color="#fc2ac1",
-            fill=False,
-            weight=0.3,
-            radius=0.5
-        ).add_to(m)
-        noe += 1
-        print(f'{str(noe)} entities added.', end='\r')
-    
-    print('\nSaving html file...')
-    
-    m.save("map.html")
-    end = time.time()
-    print(f'Time working: {convert(end-start)} (h:m:s)')
+if __name__ == '__main__':
+    args = sys.argv
+    if len(args) < 2:
+        print('Usage error.')
+    else:
+        if args[1] == '-ec':
+            if args[2]:
+                get_entities_coords(args[2])
+            else:
+                get_entities_coords()
+        elif args[1] == '-et':
+            entities_dict()
+            count_types()
+            get_types_count()
 
-world_map(100)
+
+            
 
 
 
