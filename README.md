@@ -1,8 +1,14 @@
 # Wikidata Atlas
+## Descripción
+Este mini proyecto tiene por objetivo hacer un preprocesamiento y analisis de la data que posee la base de datos de Wikidata.
+
+## Objetivo
+El principal objetivo fue georreferenciar las entidades de Wikidata usando la propiedad **P625** (*coordinate location) en un mapa mundial.
 
 ## Analisis de Datos
+Una vez obtenidas la geolocalización de las entidades se realizó un analisis de los **tipos** de entidades usando la propiedad **P31** (*instance of*) de Wikidata que indica a que tipo de ejemplar corresponde una entidad. Cabe destacar que una entidad puede tener más de una propiedad P31, por ejemplo las propiedades P31 de la Universidad de Chile son que es una universidad publica, editor de libre acceso e instituto de investigación.
 
-La siguiente tabla muestra los 25 tipos de entidades que más se repiten despues de examinar aquellas entidades que tienen coordenadas geograficas (P625)
+La siguiente tabla muestra los 25 tipos de entidades que más se repiten en Wikidata:
 | entity_type                             |   count |
 |:----------------------------------------|--------:|
 | https://www.wikidata.org/wiki/Q8502     |  519904 |
