@@ -1,14 +1,24 @@
-# Wikidata Atlas
+# Wikidata Preprocessing
+
 ## Descripción
 Este mini proyecto tiene por objetivo hacer un preprocesamiento y analisis de la data que posee la base de datos de Wikidata.
 
 ## Objetivo
-El principal objetivo fue georreferenciar las entidades de Wikidata usando la propiedad **P625** (*coordinate location) en un mapa mundial.
+El principal objetivo fue georreferenciar las entidades de Wikidata usando la propiedad **P625** (*coordinate location*) en un mapa mundial.
 
 ## Analisis de Datos
-Una vez obtenidas la geolocalización de las entidades se realizó un analisis de los **tipos** de entidades usando la propiedad **P31** (*instance of*) de Wikidata que indica a que tipo de ejemplar corresponde una entidad. Cabe destacar que una entidad puede tener más de una propiedad P31, por ejemplo las propiedades P31 de la Universidad de Chile son que es una universidad publica, editor de libre acceso e instituto de investigación.
+Una vez obtenida la geolocalización de las entidades se realizó un analisis de los **tipos** de entidades usando la propiedad **P31** (*instance of*) de Wikidata que indica a que tipo de ejemplar corresponde una entidad. Cabe destacar que una entidad puede tener más de una propiedad P31, por ejemplo las propiedades P31 de la Universidad de Chile son que es una universidad publica, editor de libre acceso e instituto de investigación.
+
+## Resultados
+Para realizar las visualizaciones se utilizaron las herramientas [D3.js](https://d3js.org/) y [Folium](https://python-visualization.github.io/folium/). 
+
+Las siguiente imagenes muestran la geolocalización de 500 mil entidades de Wikidata usando d3.js y Folium respectivamente.
+
+![d3_500k](https://user-images.githubusercontent.com/48598318/184800667-672df18e-0a3c-408e-94d6-a01e567189a2.png)
+![folium_500k](https://user-images.githubusercontent.com/48598318/184800687-d937c4b2-5903-4f9d-980c-b69259d709c0.png)
 
 La siguiente tabla muestra los 25 tipos de entidades que más se repiten en Wikidata:
+
 | entity_type                             |   count |
 |:----------------------------------------|--------:|
 | https://www.wikidata.org/wiki/Q8502     |  519904 |
